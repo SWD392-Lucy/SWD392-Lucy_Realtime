@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoomStatus {
+  OPEN
+  LIVE
+  ENDED
+}
+
+enum AccountRole {
+  Lucy
+  Pro
+  Super
+}
+
+enum ConnectionStatus {
+  ONLINE
+  DISCONNECTED
+  LEFT
+}
+
+enum RoomEventType {
+  ROOM_CREATED
+  JOINED
+  LEFT
+  DISCONNECTED
+  RECONNECTED
+  AUTO_LEFT
+  MIC_CHANGED
+  HAND_CHANGED
+  ROOM_ENDED
+}
+
+model Room {
+  id               String      @id @default(uuid()) @db.Uuid
+  title            String
+  language         String
+  level            Int
+  status           RoomStatus  @default(OPEN)
+  hostUserId       String      @db.Uuid
+  agoraChannelName String      @unique
+  maxParticipants  Int         @default(50)
+  createdAt        DateTime    @default(now())
+  startedAt        DateTime?
+  endedAt          DateTime?
+  members          RoomMember[]
+  events           RoomEvent[]
+
+  @@map("rooms")
+}
+
+model RoomMember {
+  id                   String           @id @default(uuid()) @db.Uuid
+  roomId               String           @db.Uuid
+  userId               String           @db.Uuid
+  role                 AccountRole
+  avatarPersona        String
+  anonymousDisplayName String
+  isAnonymous          Boolean
+  agoraUid             Int
+  micMuted             Boolean          @default(true)
+  handRaised           Boolean          @default(false)
+  connectionStatus     ConnectionStatus @default(ONLINE)
+  socketId             String?
+  lastSeenAt           DateTime         @default(now())
+  disconnectedAt       DateTime?
+  joinedAt             DateTime         @default(now())
+  leftAt               DateTime?
+  room                 Room             @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+  @@index([roomId, connectionStatus])
+  @@index([socketId])
+  @@map("room_members")
+}
+
+model RoomEvent {
+  id        String        @id @default(uuid()) @db.Uuid
+  roomId    String        @db.Uuid
+  userId    String?       @db.Uuid
+  type      RoomEventType
+  payload   Json?
+  createdAt DateTime      @default(now())
+  room      Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([roomId, createdAt])
+  @@map("room_events")
+}

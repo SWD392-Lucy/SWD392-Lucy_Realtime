@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: lucy-realtime-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-lucy_realtime}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    ports:
+      - "5433:5432"
+    volumes:
+      - lucy_realtime_postgres:/var/lib/postgresql/data
+
+volumes:
+  lucy_realtime_postgres:
