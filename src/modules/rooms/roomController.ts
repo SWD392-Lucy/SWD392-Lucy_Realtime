@@ -9,7 +9,8 @@ import {
   updateHand,
   updateMic
 } from "./roomService.js";
-import { createRoomSchema, handSchema, micSchema, roomIdParamsSchema } from "./roomSchemas.js";
+import { getProgress, manualNextProgress, manualPreviousProgress, startProgress } from "./progressionService.js";
+import { createRoomSchema, handSchema, micSchema, roomIdParamsSchema, startProgressSchema } from "./roomSchemas.js";
 
 export async function createRoomHandler(req: Request, res: Response) {
   const input = createRoomSchema.parse(req.body);
@@ -51,4 +52,25 @@ export async function updateHandHandler(req: Request, res: Response) {
 export async function endRoomHandler(req: Request, res: Response) {
   const { roomId } = roomIdParamsSchema.parse(req.params);
   res.json(await endRoom(req.user!, roomId));
+}
+
+export async function getProgressHandler(req: Request, res: Response) {
+  const { roomId } = roomIdParamsSchema.parse(req.params);
+  res.json(await getProgress(roomId));
+}
+
+export async function startProgressHandler(req: Request, res: Response) {
+  const { roomId } = roomIdParamsSchema.parse(req.params);
+  const { totalSubLevels } = startProgressSchema.parse(req.body ?? {});
+  res.json(await startProgress(req.user!, roomId, totalSubLevels));
+}
+
+export async function nextProgressHandler(req: Request, res: Response) {
+  const { roomId } = roomIdParamsSchema.parse(req.params);
+  res.json(await manualNextProgress(req.user!, roomId));
+}
+
+export async function previousProgressHandler(req: Request, res: Response) {
+  const { roomId } = roomIdParamsSchema.parse(req.params);
+  res.json(await manualPreviousProgress(req.user!, roomId));
 }

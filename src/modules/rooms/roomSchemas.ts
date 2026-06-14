@@ -32,3 +32,7 @@ export const socketHandSchema = z.object({
   roomId: z.string().uuid(),
   raised: z.boolean()
 });
+
+export const startProgressSchema = z.object({
+  totalSubLevels: z.coerce.number().int().min(1).max(24).default(6)
+});

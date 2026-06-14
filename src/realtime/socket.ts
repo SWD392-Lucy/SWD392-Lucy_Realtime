@@ -8,6 +8,7 @@ import {
   updateHand,
   updateMic
 } from "../modules/rooms/roomService.js";
+import { getProgress } from "../modules/rooms/progressionService.js";
 import {
   socketHandSchema,
   socketMicSchema,
@@ -42,6 +43,7 @@ export function configureSocket(io: Server) {
         socket.join(roomChannel(roomId));
         socket.data.activeRoomIds.add(roomId);
         socket.emit("room:snapshot", await getRoom(roomId));
+        socket.emit("room:progress_snapshot", await getProgress(roomId));
       });
     });
 

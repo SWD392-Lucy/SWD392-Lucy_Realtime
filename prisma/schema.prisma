@@ -35,6 +35,9 @@ enum RoomEventType {
   MIC_CHANGED
   HAND_CHANGED
   ROOM_ENDED
+  PROGRESS_STARTED
+  SUBLEVEL_CHANGED
+  PROGRESS_COMPLETED
 }
 
 model Room {
@@ -46,6 +49,11 @@ model Room {
   hostUserId       String      @db.Uuid
   agoraChannelName String      @unique
   maxParticipants  Int         @default(50)
+  autoStageEnabled Boolean     @default(false)
+  currentSubLevelIndex Int     @default(0)
+  totalSubLevels   Int         @default(6)
+  stageStartedAt   DateTime?
+  nextTransitionAt DateTime?
   createdAt        DateTime    @default(now())
   startedAt        DateTime?
   endedAt          DateTime?

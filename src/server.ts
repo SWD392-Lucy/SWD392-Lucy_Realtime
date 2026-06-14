@@ -5,10 +5,12 @@ import { corsOrigins, env } from "./config/env.js";
 import { connectDatabase, disconnectDatabase } from "./database/prisma.js";
 import { configureSocket } from "./realtime/socket.js";
 import { startPresenceJobs, stopPresenceJobs } from "./modules/presence/presenceJob.js";
+import { startProgressionJob, stopProgressionJob } from "./modules/rooms/progressionJob.js";
 
 async function main() {
   await connectDatabase();
   await startPresenceJobs();
+  startProgressionJob();
 
   const app = createApp();
   const server = http.createServer(app);
@@ -28,6 +30,7 @@ async function main() {
   const shutdown = async () => {
     console.log("Shutting down realtime service...");
     stopPresenceJobs();
+    stopProgressionJob();
     io.close();
     server.close();
     await disconnectDatabase();

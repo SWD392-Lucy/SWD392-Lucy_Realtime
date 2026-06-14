@@ -8,6 +8,10 @@ import {
   joinRoomHandler,
   leaveRoomHandler,
   listRoomsHandler,
+  getProgressHandler,
+  nextProgressHandler,
+  previousProgressHandler,
+  startProgressHandler,
   updateHandHandler,
   updateMicHandler
 } from "../../modules/rooms/roomController.js";
@@ -18,6 +22,10 @@ roomRoutes.use(requireAuth);
 roomRoutes.post("/", asyncHandler(createRoomHandler));
 roomRoutes.get("/", asyncHandler(listRoomsHandler));
 roomRoutes.get("/:roomId", asyncHandler(getRoomHandler));
+roomRoutes.get("/:roomId/progress", asyncHandler(getProgressHandler));
+roomRoutes.post("/:roomId/progress/start", asyncHandler(startProgressHandler));
+roomRoutes.post("/:roomId/progress/next", asyncHandler(nextProgressHandler));
+roomRoutes.post("/:roomId/progress/previous", asyncHandler(previousProgressHandler));
 roomRoutes.post("/:roomId/join", asyncHandler(joinRoomHandler));
 roomRoutes.post("/:roomId/leave", asyncHandler(leaveRoomHandler));
 roomRoutes.post("/:roomId/mic", asyncHandler(updateMicHandler));
