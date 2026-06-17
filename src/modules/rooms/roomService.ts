@@ -10,9 +10,10 @@ import { env } from "../../config/env.js";
 import { prisma } from "../../database/prisma.js";
 import { AppError } from "../../http/errors.js";
 import { createAgoraUid, createRtcToken } from "../agora/agoraService.js";
-import { getRoomIdentity } from "../identity/identityClient.js";
+import { getRoomIdentity, getUserRoomIdentity } from "../identity/identityClient.js";
 import type { AuthUser } from "../../types/auth.js";
 import { emitToRoom } from "../../realtime/publisher.js";
+import { stateFor } from "./progressionService.js";
 
 type CreateRoomInput = {
   title: string;
@@ -47,7 +48,7 @@ export async function createRoom(user: AuthUser, input: CreateRoomInput) {
   return room;
 }
 
-export async function listRooms() {
+export async function listRooms(token: string) {
   const rooms = await prisma.room.findMany({
     where: {
       status: {
@@ -68,13 +69,32 @@ export async function listRooms() {
     }
   });
 
-  return rooms.map(({ members, ...room }) => ({
-    ...room,
-    activeMemberCount: members.filter((member) => member.connectionStatus === ConnectionStatus.ONLINE).length
-  }));
+  const hostUserIds = Array.from(new Set(rooms.map((room) => room.hostUserId)));
+  const hostIdentities = await Promise.all(
+    hostUserIds.map(async (hostUserId) => {
+      try {
+        const identity = await getUserRoomIdentity(hostUserId, token);
+        return { hostUserId, identity };
+      } catch {
+        return { hostUserId, identity: null };
+      }
+    })
+  );
+  const hostMap = new Map(hostIdentities.map((h) => [h.hostUserId, h.identity]));
+
+  return rooms.map(({ members, ...room }) => {
+    const hostIdentity = hostMap.get(room.hostUserId);
+    const progression = stateFor(room);
+    return {
+      ...room,
+      hostDisplayName: hostIdentity?.anonymousDisplayName ?? "Unknown Host",
+      progressionState: progression.name,
+      activeMemberCount: members.filter((member) => member.connectionStatus === ConnectionStatus.ONLINE).length
+    };
+  });
 }
 
-export async function getRoom(roomId: string) {
+export async function getRoom(roomId: string, token?: string) {
   const room = await prisma.room.findUnique({
     where: { id: roomId },
     include: {
@@ -96,7 +116,24 @@ export async function getRoom(roomId: string) {
     throw new AppError(404, "room_not_found", "Room does not exist.");
   }
 
-  return room;
+  let hostDisplayName = "Unknown Host";
+  if (token) {
+    try {
+      const hostIdentity = await getUserRoomIdentity(room.hostUserId, token);
+      hostDisplayName = hostIdentity.anonymousDisplayName;
+    } catch {
+      // ignore/fallback
+    }
+  }
+
+  const progression = stateFor(room);
+  const { members, ...roomData } = room;
+  return {
+    ...roomData,
+    hostDisplayName,
+    progressionState: progression.name,
+    members
+  };
 }
 
 export async function joinRoom(user: AuthUser, roomId: string, socketId?: string) {
@@ -194,7 +231,7 @@ export async function joinRoom(user: AuthUser, roomId: string, socketId?: string
   if (!wasOnline) {
     emitToRoom(roomId, wasDisconnected ? "member:reconnected" : "member:joined", result);
   }
-  emitToRoom(roomId, "room:snapshot", await getRoom(roomId));
+  emitToRoom(roomId, "room:snapshot", await getRoom(roomId, user.token));
 
   return {
     ...token,

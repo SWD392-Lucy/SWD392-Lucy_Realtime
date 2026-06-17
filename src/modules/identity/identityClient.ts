@@ -3,9 +3,13 @@ import { AppError } from "../../http/errors.js";
 import type { AuthUser, RoomIdentity } from "../../types/auth.js";
 
 export async function getRoomIdentity(user: AuthUser): Promise<RoomIdentity> {
-  const response = await fetch(`${env.IDENTITY_SERVICE_URL}/api/internal/users/${user.userId}/room-identity`, {
+  return getUserRoomIdentity(user.userId, user.token);
+}
+
+export async function getUserRoomIdentity(targetUserId: string, token: string): Promise<RoomIdentity> {
+  const response = await fetch(`${env.IDENTITY_SERVICE_URL}/api/internal/users/${targetUserId}/room-identity`, {
     headers: {
-      Authorization: `Bearer ${user.token}`
+      Authorization: `Bearer ${token}`
     }
   });
 
@@ -33,3 +37,4 @@ export async function getRoomIdentity(user: AuthUser): Promise<RoomIdentity> {
     isAnonymous: data.isAnonymous
   };
 }
+

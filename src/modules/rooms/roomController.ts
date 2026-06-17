@@ -20,13 +20,13 @@ export async function createRoomHandler(req: Request, res: Response) {
   res.status(201).json(room);
 }
 
-export async function listRoomsHandler(_req: Request, res: Response) {
-  res.json(await listRooms());
+export async function listRoomsHandler(req: Request, res: Response) {
+  res.json(await listRooms(req.user!.token));
 }
 
 export async function getRoomHandler(req: Request, res: Response) {
   const { roomId } = roomIdParamsSchema.parse(req.params);
-  res.json(await getRoom(roomId));
+  res.json(await getRoom(roomId, req.user!.token));
 }
 
 export async function joinRoomHandler(req: Request, res: Response) {

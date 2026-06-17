@@ -43,7 +43,7 @@ export function configureSocket(io: Server) {
         await joinRoom(socket.data.user, roomId, socket.id);
         socket.join(roomChannel(roomId));
         socket.data.activeRoomIds.add(roomId);
-        socket.emit("room:snapshot", await getRoom(roomId));
+        socket.emit("room:snapshot", await getRoom(roomId, socket.data.user.token));
         socket.emit("room:progress_snapshot", await getProgress(roomId));
       });
     });
