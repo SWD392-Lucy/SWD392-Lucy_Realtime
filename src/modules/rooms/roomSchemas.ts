@@ -4,6 +4,11 @@ export const roomIdParamsSchema = z.object({
   roomId: z.string().uuid()
 });
 
+export const roomMemberParamsSchema = z.object({
+  roomId: z.string().uuid(),
+  memberId: z.string().uuid()
+});
+
 export const createRoomSchema = z.object({
   title: z.string().trim().min(1).max(120),
   language: z.string().trim().min(1).max(40),
@@ -31,6 +36,11 @@ export const socketMicSchema = z.object({
 export const socketHandSchema = z.object({
   roomId: z.string().uuid(),
   raised: z.boolean()
+});
+
+export const socketMaterialSchema = z.object({
+  roomId: z.string().uuid(),
+  action: z.enum(["uploaded", "pinned", "unpinned", "deleted"]).default("pinned")
 });
 
 export const startProgressSchema = z.object({

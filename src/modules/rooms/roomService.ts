@@ -234,6 +234,85 @@ export async function updateMic(user: AuthUser, roomId: string, muted: boolean) 
   return updated;
 }
 
+export async function manageMemberMic(user: AuthUser, roomId: string, memberId: string, muted: boolean) {
+  const room = await prisma.room.findUnique({ where: { id: roomId } });
+  if (!room) {
+    throw new AppError(404, "room_not_found", "Room does not exist.");
+  }
+  requireRoomManager(user, room);
+
+  const member = await prisma.roomMember.findFirst({
+    where: {
+      id: memberId,
+      roomId,
+      connectionStatus: {
+        in: [ConnectionStatus.ONLINE, ConnectionStatus.DISCONNECTED]
+      }
+    }
+  });
+  if (!member) {
+    throw new AppError(404, "member_not_found", "Member is not active in this room.");
+  }
+
+  const updated = await prisma.roomMember.update({
+    where: { id: member.id },
+    data: {
+      micMuted: muted,
+      lastSeenAt: new Date()
+    }
+  });
+
+  await recordEvent(roomId, user.userId, RoomEventType.MIC_CHANGED, {
+    muted,
+    targetUserId: member.userId,
+    managed: true
+  });
+  emitToRoom(roomId, "member:mic_changed", updated);
+  return updated;
+}
+
+export async function kickMember(user: AuthUser, roomId: string, memberId: string) {
+  const room = await prisma.room.findUnique({ where: { id: roomId } });
+  if (!room) {
+    throw new AppError(404, "room_not_found", "Room does not exist.");
+  }
+  requireRoomManager(user, room);
+
+  const member = await prisma.roomMember.findFirst({
+    where: {
+      id: memberId,
+      roomId,
+      connectionStatus: {
+        in: [ConnectionStatus.ONLINE, ConnectionStatus.DISCONNECTED]
+      }
+    }
+  });
+  if (!member) {
+    throw new AppError(404, "member_not_found", "Member is not active in this room.");
+  }
+  if (member.userId === user.userId) {
+    throw new AppError(400, "cannot_kick_self", "Managers cannot kick themselves.");
+  }
+
+  const updated = await prisma.roomMember.update({
+    where: { id: member.id },
+    data: {
+      connectionStatus: ConnectionStatus.LEFT,
+      socketId: null,
+      leftAt: new Date(),
+      lastSeenAt: new Date()
+    }
+  });
+
+  await recordEvent(roomId, user.userId, RoomEventType.LEFT, {
+    targetUserId: member.userId,
+    kicked: true
+  });
+  emitToRoom(roomId, "member:kicked", updated);
+  emitToRoom(roomId, "member:left", updated);
+  return updated;
+}
+
 export async function updateHand(user: AuthUser, roomId: string, raised: boolean) {
   const member = await requireMember(roomId, user.userId);
   const updated = await prisma.roomMember.update({
@@ -405,5 +484,11 @@ async function recordEvent(roomId: string, userId: string | null, type: RoomEven
 function requireMentor(user: AuthUser) {
   if (user.role !== AccountRole.Pro && user.role !== AccountRole.Super) {
     throw new AppError(403, "forbidden", "Only Pro or Super users can create realtime rooms.");
+  }
+}
+
+function requireRoomManager(user: AuthUser, room: { hostUserId: string }) {
+  if (room.hostUserId !== user.userId && user.role !== AccountRole.Pro && user.role !== AccountRole.Super) {
+    throw new AppError(403, "forbidden", "Only Pro or Super users can manage room learners.");
   }
 }

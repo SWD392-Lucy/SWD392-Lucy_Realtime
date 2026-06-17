@@ -11,6 +11,7 @@ import {
 import { getProgress } from "../modules/rooms/progressionService.js";
 import {
   socketHandSchema,
+  socketMaterialSchema,
   socketMicSchema,
   socketRoomJoinSchema
 } from "../modules/rooms/roomSchemas.js";
@@ -68,6 +69,21 @@ export function configureSocket(io: Server) {
       await safeSocketHandler(socket, async () => {
         const { roomId, raised } = socketHandSchema.parse(payload);
         await updateHand(socket.data.user, roomId, raised);
+      });
+    });
+
+    socket.on("room:materials_changed", async (payload: unknown) => {
+      await safeSocketHandler(socket, async () => {
+        const { roomId, action } = socketMaterialSchema.parse(payload);
+        if (!socket.data.activeRoomIds.has(roomId)) {
+          throw new Error("Socket has not joined this room.");
+        }
+        io.to(roomChannel(roomId)).emit("room:materials_changed", {
+          roomId,
+          action,
+          changedByUserId: socket.data.user.userId,
+          changedAt: new Date().toISOString()
+        });
       });
     });
 

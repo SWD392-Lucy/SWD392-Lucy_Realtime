@@ -6,8 +6,10 @@ import {
   endRoomHandler,
   getRoomHandler,
   joinRoomHandler,
+  kickMemberHandler,
   leaveRoomHandler,
   listRoomsHandler,
+  manageMemberMicHandler,
   getProgressHandler,
   nextProgressHandler,
   previousProgressHandler,
@@ -30,4 +32,6 @@ roomRoutes.post("/:roomId/join", asyncHandler(joinRoomHandler));
 roomRoutes.post("/:roomId/leave", asyncHandler(leaveRoomHandler));
 roomRoutes.post("/:roomId/mic", asyncHandler(updateMicHandler));
 roomRoutes.post("/:roomId/hand", asyncHandler(updateHandHandler));
+roomRoutes.post("/:roomId/members/:memberId/mute", asyncHandler(manageMemberMicHandler));
+roomRoutes.post("/:roomId/members/:memberId/kick", asyncHandler(kickMemberHandler));
 roomRoutes.post("/:roomId/end", asyncHandler(endRoomHandler));
